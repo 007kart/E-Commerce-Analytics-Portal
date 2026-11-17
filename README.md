@@ -1,57 +1,58 @@
-# E-Commerce Analytics Portal
+# CommercePulse — E-Commerce Analytics Portal
 
-**Next.js · React · TypeScript · Python FastAPI · SQL · PostgreSQL · Docker · AWS deployment-ready structure**
+**A full-stack JavaScript Next.js portfolio application.** Responsive React dashboard, **Next.js App Router route handlers** for all backend APIs, PostgreSQL, analytics queries, order processing and CSV exports. **No Python or FastAPI.**
 
-A full-stack portfolio recreation of the analytics workflows described on my resume. This is an independent **demo using synthetic data**, not an export of a real employer's code or customer data. No real integrations, transactions, AWS environment, or latency benchmarks are claimed.
+> This is an independent demo using synthetic data, not company code or real customer records. Do not claim real AWS deployment or sub-100ms benchmark without measuring it in a deployed environment.
 
 ## Features
-- Interactive sales overview: revenue, orders, active customers, average order value
-- Daily sales trend graph, best-selling products ranked by revenue
-- Searchable/paginated orders table with status filtering
-- Export orders to CSV, add demo orders with backend validation
-- PostgreSQL schema with customers, products, orders, order_items
-- 225 synthetic orders seeded on first startup
-- REST API documented with Swagger/OpenAPI
-- Responsive frontend with polished dashboard presentation
-- Isolated API tests using in-memory SQLite; PostgreSQL used in Docker runtime
+- Revenue, orders, customers and average-order-value metrics for 7/30/90 days
+- Sales trend chart, product leaderboard, revenue by category, fulfillment status distribution
+- Searchable customer/order list, status filtering, server-side pagination
+- Create a sample order: validated customer inputs, PostgreSQL transaction and row-level stock locking
+- CSV export of orders (with spreadsheet-formula escaping)
+- 240 synthetic orders, 24 customers, 12 products seeded automatically
+- Responsive light dashboard, accessible controls, descriptive empty/error/loading states
+- Native Next.js API routes and PostgreSQL (Node `pg`) — backend and frontend are both JavaScript
 
 ## Run locally
 
-**Prerequisites:** Docker Engine + Docker Compose, Node.js 20+.
-
-1. Start the Postgres database and FastAPI backend: `docker compose up --build -d`
-2. In another terminal: `cd frontend && cp .env.example .env.local && npm install && npm run dev`
-3. Open **http://localhost:3000**; API Swagger docs: **http://localhost:8000/docs**
-4. Optional DBeaver connection: host `localhost`, port `5441`, database `ecommerce_demo`, username/password `demo` (dev only).
-5. Reset demo data: `docker compose down -v` then `docker compose up --build`.
-
-## API
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/health` | Health check |
-| GET | `/api/overview?days=30` | KPIs |
-| GET | `/api/trends?days=30` | Daily revenue/orders |
-| GET | `/api/top-products?days=30` | Top sellers |
-| GET | `/api/orders?status=paid&search=...&page=1` | Paginated orders |
-| GET | `/api/orders/export` | CSV export |
-| POST | `/api/orders` | Create synthetic order |
-
-## Backend tests
+Prerequisites: **Node.js 20+**, **Docker Desktop**. Starting the database does not require the frontend to use Docker.
 
 ```bash
-cd backend
-pip install -r requirements.txt
-pytest -q
+cp .env.example .env.local
+npm install
+docker compose up -d
+npm run db:setup
+npm run dev
 ```
 
-## Stack explanation for interviews
-- Next.js dashboard calls FastAPI REST endpoints.
-- SQLAlchemy generates SQL against a relational PostgreSQL schema; DBeaver can inspect it.
-- API aggregates order and order-item data for sales trends and KPI cards.
-- CSV reports make transaction tables accessible to business teams.
-- App is containerized to make future deployment on AWS ECS/EC2 possible (not yet deployed).
+Open **http://localhost:3000**. For DBeaver: localhost:5441, database `commercepulse`, username `portfolio`, password `portfolio` (**local development only**).
 
-## Production gaps
-Add authentication/authorization, database migrations (Alembic), caching, rate limiting, audit logs, CI tests, monitoring, request performance measurement, and safe multi-tenant data handling before a public production deployment. No payment processing is included.
+> The setup script reads `DATABASE_URL` from the shell environment. To make it available to the script, run `set -a; . ./.env.local; set +a` in bash before `npm run db:setup`, or prefix the command with `DATABASE_URL=postgresql://portfolio:portfolio@localhost:5441/commercepulse`. Next.js itself automatically reads `.env.local`.
 
-**Resume integrity:** An independent demo cannot substantiate past employer-specific claims such as 'sub-100 ms' or real business impact. Only list such metrics if independently measured and verifiable.
+To reset demo data: `docker compose down -v`, then start PostgreSQL and run `npm run db:setup` again. The setup script never overwrites a database that already has orders.
+
+## Next.js API routes
+
+| Method | Path | What it does |
+|---|---|---|
+| GET | `/api/dashboard?days=30` | Metrics, trend data, products, categories |
+| GET | `/api/orders?search=&status=all&page=1` | Paginated filtered orders |
+| POST | `/api/orders` | Transactional order creation and stock update |
+| GET | `/api/orders/export` | CSV export |
+| GET | `/api/products` | Available catalog |
+
+**Sample POST body:** `{"customerName":"Demo Buyer","email":"demo@example.com","productId":1,"quantity":2}`
+
+## Verify
+
+```bash
+npm test
+npm run build
+```
+
+Unit tests cover input validation, CSV escaping, and date filtering. **Database integration and production deployment require a running PostgreSQL database**.
+
+## Production notes
+
+Before public deployment implement authentication, authorization, CSRF/abuse protections, rate limiting, audited order workflows, managed secrets, real order/payment integrations and an externally hosted PostgreSQL database. Configure a hosting provider that supports Next.js Node.js server functions (e.g. Vercel), and set `DATABASE_URL` as a server-side environment variable.
